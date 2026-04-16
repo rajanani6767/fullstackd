@@ -1,0 +1,110 @@
+import java.util.*;
+
+// ---------------------- SERVICE REGISTRY ----------------------
+class ServiceRegistry {
+
+    private static Map<String, List<String>> registry = new HashMap<>();
+
+    public static void register(String serviceName, String instance) {
+        registry.computeIfAbsent(serviceName, k -> new ArrayList<>()).add(instance);
+    }
+
+    public static String discover(String serviceName) {
+        List<String> instances = registry.get(serviceName);
+
+        if (instances == null || instances.isEmpty()) return null;
+
+        return instances.get(new Random().nextInt(instances.size()));
+    }
+}
+
+// ---------------------- USER SERVICE (PROVIDER) ----------------------
+class UserService {
+
+    private String instance;
+
+    public UserService(String instance) {
+        this.instance = instance;
+        ServiceRegistry.register("USER-SERVICE", instance);
+    }
+
+    // REST API simulation
+    public String getUser(int id) {
+        return instance + " -> User-" + id;
+    }
+}
+
+// ---------------------- ORDER SERVICE (CONSUMER) ----------------------
+class OrderService {
+
+    private String instance;
+
+    public OrderService(String instance) {
+        this.instance = instance;
+        ServiceRegistry.register("ORDER-SERVICE", instance);
+    }
+
+    public String placeOrder(int userId, String product) {
+
+        try {
+            // Discover USER SERVICE dynamically
+            String userInstance = ServiceRegistry.discover("USER-SERVICE");
+
+            if (userInstance == null) {
+                return "User Service unavailable";
+            }
+
+            // Simulated REST call
+            UserService userService = new UserService(userInstance);
+            String user = userService.getUser(userId);
+
+            return instance + " processed order: " + user + " bought " + product;
+
+        } catch (Exception e) {
+            // Graceful failure handling
+            return "Order failed due to service error. Please try again later.";
+        }
+    }
+}
+
+// ---------------------- API GATEWAY ----------------------
+class ApiGateway {
+
+    public String handleRequest(String url) {
+
+        if (url.startsWith("/order")) {
+
+            String[] parts = url.split("/");
+            int userId = Integer.parseInt(parts[2]);
+            String product = parts[3];
+
+            String orderInstance = ServiceRegistry.discover("ORDER-SERVICE");
+
+            if (orderInstance == null) return "Order Service unavailable";
+
+            OrderService os = new OrderService(orderInstance);
+            return os.placeOrder(userId, product);
+        }
+
+        return "Invalid request";
+    }
+}
+
+// ---------------------- MAIN ----------------------
+public class Task17_RestCommunicationDemo {
+
+    public static void main(String[] args) {
+
+        // Register services
+        new UserService("User-Instance1");
+        new UserService("User-Instance2");
+
+        new OrderService("Order-Instance1");
+
+        ApiGateway gateway = new ApiGateway();
+
+        // Simulate request
+        String response = gateway.handleRequest("/order/1/Laptop");
+        System.out.println("Response: " + response);
+    }
+}
