@@ -1,0 +1,87 @@
+import java.util.*;
+
+// ---------------------- USER SERVICE ----------------------
+class UserService {
+    public String getUser(int id) {
+        return "User-" + id;
+    }
+}
+
+// ---------------------- ORDER SERVICE ----------------------
+class OrderService {
+
+    private UserService userService;
+
+    public OrderService(UserService userService) {
+        this.userService = userService;
+    }
+
+    public String placeOrder(int userId, String product) {
+        String user = userService.getUser(userId);
+        return "Order placed by " + user + " for " + product;
+    }
+}
+
+// ---------------------- API CONTROLLER (SIMULATED REST) ----------------------
+class ApiController {
+
+    private OrderService orderService;
+
+    public ApiController(OrderService orderService) {
+        this.orderService = orderService;
+    }
+
+    // Simulated REST endpoint
+    public String orderEndpoint(int userId, String product) {
+        return orderService.placeOrder(userId, product);
+    }
+}
+
+// ---------------------- UNIT TESTS ----------------------
+class UnitTests {
+
+    public static void runAllTests() {
+
+        testUserService();
+        testOrderService();
+        testApiController();
+
+        System.out.println("All tests passed successfully!");
+    }
+
+    // Test Service Logic
+    private static void testUserService() {
+        UserService us = new UserService();
+        assert us.getUser(1).equals("User-1") : "UserService Test Failed";
+    }
+
+    // Test Business Logic
+    private static void testOrderService() {
+        UserService us = new UserService();
+        OrderService os = new OrderService(us);
+
+        String result = os.placeOrder(1, "Laptop");
+        assert result.contains("Order placed") : "OrderService Test Failed";
+    }
+
+    // Test REST Controller
+    private static void testApiController() {
+        UserService us = new UserService();
+        OrderService os = new OrderService(us);
+        ApiController api = new ApiController(os);
+
+        String response = api.orderEndpoint(1, "Mobile");
+        assert response.equals("Order placed by User-1 for Mobile") 
+            : "API Controller Test Failed";
+    }
+}
+
+// ---------------------- MAIN ----------------------
+public class Task18_UnitTestingDemo {
+
+    public static void main(String[] args) {
+
+        // Run all unit tests
+        UnitTests.runAllTests();
+    }
+}
